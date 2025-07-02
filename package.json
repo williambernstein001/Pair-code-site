@@ -1,0 +1,22 @@
+// ✅ package.json
+
+{ 
+  "name": "pair-code-generator",
+  "version": "1.0.0",
+  "description": "Site plug & play pour générer des sessions WhatsApp avec pair code via Baileys",
+  "main": "index.js",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start" 
+  },
+  "author": "Nexus DJ",
+  "license": "MIT",
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.0",
+    "next": "^14.2.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0" },
+  "type": "module" 
+}
+

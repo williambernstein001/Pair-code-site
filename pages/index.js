@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import QRCode from 'qrcode.react';
-import socket from './lib/socket'
-import generator from './utils/generator'
+import socket from './lib/socket';
+import generator from './utils/generator';
+
 export default function Home() {
   const [bot, setBot] = useState('surgical','spectral');
   const [username, setUsername] = useState('');

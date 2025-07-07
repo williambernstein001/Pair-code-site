@@ -1,58 +1,129 @@
-// ✅ pages/index.js
-
 import { useState } from 'react';
+import QRCode from 'qrcode.react';
 
-export default function Home() { const [bot, setBot] = useState('surgical'); const [username, setUsername] = useState(''); const [code, setCode] = useState(null); const [loading, setLoading] = useState(false);
+export default function Home() {
+  const [bot, setBot] = useState('surgical');
+  const [username, setUsername] = useState('');
+  const [code, setCode] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [copied, setCopied] = useState(false);
 
-const handleSubmit = async (e) => { e.preventDefault(); if (!username) return; setLoading(true); setCode(null);
+  const validateUsername = (name) => {
+    // Ex: autoriser lettres, chiffres, tirets, underscore, espaces
+    return /^[\w\s-]{3,30}$/.test(name);
+  };
 
-const res = await fetch('/api/generate', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ bot, username })
-});
+  const fetchCode = async () => {
+    if (!validateUsername(username)) {
+      setError('Nom/numéro invalide (3-30 caractères alphanumériques).');
+      setCode(null);
+      return;
+    }
+    setLoading(true);
+    setError('');
+    setCode(null);
+    setCopied(false);
 
-const data = await res.json();
-setLoading(false);
-if (data.code) setCode(data.code);
+    try {
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bot, username }),
+      });
+      if (!res.ok) throw new Error(`Erreur serveur ${res.status}`);
+      const data = await res.json();
+      if (data.code) setCode(data.code);
+      else setError('Aucun code reçu, essaie de nouveau.');
+    } catch (e) {
+      setError(`Erreur : ${e.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-};
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    fetchCode();
+  };
 
-return ( <div style={{ maxWidth: 400, margin: 'auto', padding: 30, fontFamily: 'sans-serif' }}> <h1>🔐 Générateur Pair Code</h1>
+  const handleCopy = () => {
+    if (!code) return;
+    navigator.clipboard.writeText(code).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    });
+  };
 
-<form onSubmit={handleSubmit}>
-    <label>Choisir le bot :</label><br />
-    <select value={bot} onChange={(e) => setBot(e.target.value)}>
-      <option value="surgical">😇 Surgical</option>
-      <option value="spectral">😈 Spectral</option>
-    </select>
+  return (
+    <div style={{ maxWidth: 400, margin: 'auto', padding: 30, fontFamily: 'sans-serif' }}>
+      <h1>🔐 Générateur Pair Code</h1>
 
-    <br /><br />
-    <label>Nom / numéro WhatsApp :</label><br />
-    <input
-      type="text"
-      value={username}
-      onChange={(e) => setUsername(e.target.value)}
-      required
-    />
+      <form onSubmit={handleSubmit}>
+        <label>Choisir le bot :</label>
+        <br />
+        <select value={bot} onChange={(e) => setBot(e.target.value)} disabled={loading}>
+          <option value="surgical">😇 Surgical</option>
+          <option value="spectral">😈 Spectral</option>
+        </select>
 
-    <br /><br />
-    <button type="submit" disabled={loading}>
-      {loading ? 'Connexion...' : 'Générer Pair Code'}
-    </button>
-  </form>
+        <br />
+        <br />
+        <label>Nom / numéro WhatsApp :</label>
+        <br />
+        <input
+          type="text"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          disabled={loading}
+          required
+          placeholder="ex: will123"
+        />
 
-  {code && (
-    <div style={{ marginTop: 20 }}>
-      <p><strong>📟 Code généré :</strong> <code>{code}</code></p>
-      <p>Scanne le code dans WhatsApp pour lier ton bot.</p>
-      <a href={`/sessions/${bot}/${username}/creds.json`} download>
-        📥 Télécharger session
-      </a>
+        <br />
+        <br />
+        <button type="submit" disabled={loading}>
+          {loading ? 'Connexion...' : 'Générer Pair Code'}
+        </button>
+
+        {code && (
+          <>
+            <button
+              type="button"
+              onClick={handleCopy}
+              style={{ marginLeft: 10, cursor: 'pointer' }}
+            >
+              {copied ? '✔️ Copié' : '📋 Copier le code'}
+            </button>
+            <button
+              type="button"
+              onClick={fetchCode}
+              disabled={loading}
+              style={{ marginLeft: 10 }}
+            >
+              🔄 Rafraîchir
+            </button>
+          </>
+        )}
+      </form>
+
+      <div style={{ marginTop: 20 }}>
+        {error && <p style={{ color: 'red' }}>{error}</p>}
+
+        {code && (
+          <>
+            <p>
+              <strong>📟 Code généré :</strong> <code>{code}</code>
+            </p>
+            <p>Scanne le code dans WhatsApp pour lier ton bot.</p>
+            <QRCode value={code} size={180} />
+            <br />
+            <a href={`/sessions/${bot}/${username}/creds.json`} download>
+              📥 Télécharger session
+            </a>
+          </>
+        )}
+      </div>
     </div>
-  )}
-</div>
-
-); }
-
-  
+  );
+}
